@@ -1,0 +1,6 @@
+--add datafile in tablespace
+ALTER TABLESPACE PROD01_DATA ADD DATAFILE '/u01/app/oracle/oradata/erp/PRODAT02.dbf' size 10G autoextend on next 500M;
+
+
+
+ALTER TABLESPACE TEMP ADD TEMPFILE '/u03/oradata/erp/temp02.dbf' size 5G autoextend on next 500M;

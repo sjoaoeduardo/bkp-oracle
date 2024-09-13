@@ -1,0 +1,131 @@
+Exibindo consultas que estão consumindo mais espaço na TEMP:
+
+
+--
+-- Displays the temp sort space currently in use by users.
+--
+SET PAGESIZE 50
+SET LINESIZE 300
+ 
+COLUMN tablespace FORMAT A20
+COLUMN temp_size FORMAT A20
+COLUMN sid_serial FORMAT A20
+COLUMN username FORMAT A20
+COLUMN program FORMAT A50
+ 
+SELECT b.tablespace,
+       ROUND(((b.blocks*p.value)/1024/1024),2)||'M' AS temp_size,
+       a.inst_id as Instance,
+       a.sid||','||a.serial# AS sid_serial,
+       NVL(a.username, '(oracle)') AS username,
+       a.program,
+       a.status,
+       a.sql_id
+FROM   gv$session a,
+       gv$sort_usage b,
+       gv$parameter p
+WHERE  p.name  = 'db_block_size'
+AND    a.saddr = b.session_addr
+AND    a.inst_id=b.inst_id
+AND    a.inst_id=p.inst_id
+ORDER BY b.tablespace, b.blocks
+/
+
+Exibind SQL_ID completo
+
+-- Query 2: Listando a query do passo anterior
+COL SQL_FULLTEXT FOR A160
+SET LONG 9999
+SELECT SQL_FULLTEXT FROM V$SQLSTATS WHERE SQL_ID = '&SQLID_DA_PRIMEIRA_QUERY';
+
+
+
+
+-- limpando tablespace temp 
+
+-- cria nova temp:
+CREATE TEMPORARY TABLESPACE TEMP2 
+	TEMPFILE '/u01/app/oracle/oradata/itavema/temp2_01.dbf′ 
+	SIZE 2G autoextend on next 500M;
+	
+-- Alterando as consultas de TEMP 
+	ALTER DATABASE DEFAULT TEMPORARY TABLESPACE temp2;
+
+-- Encontrando sessões q estão utilizando a TEMP 
+	SELECT USERNAME, SESSION_NUM, SESSION_ADDR FROM V$SORT_USAGE; 
+	
+	Matando a sessão:
+	
+	  ALTER SYSTEM KILL 'SID,SERIAL#' IMMEDIATE; 
+
+-- apagando temp 
+	DROP TABLESPACE temp INCLUDING CONTENTS AND DATAFILES;
+
+-- recriando a temp 
+	CREATE TEMPORARY TABLESPACE TEMP2 
+	TEMPFILE '/u01/app/oracle/oradata/itavema/temp1_01.dbf′ 
+	SIZE 2G autoextend on next 500M;
+
+-- voltando consulta para a temp 
+	ALTER DATABASE DEFAULT TEMPORARY TABLESPACE temp;
+	
+-- apagando a temp2 
+	DROP TABLESPACE temp2 INCLUDING CONTENTS AND DATAFILES;
+
+
+
+	
+-- Shows Temporary Tablespace Usage
+--
+-- Temporary Tablespace Usage.
+--
+ 
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+ 
+COL TABLESPACE_SIZE FOR 999,999,999,999
+COL ALLOCATED_SPACE FOR 999,999,999,999
+COL FREE_SPACE FOR 999,999,999,999
+ 
+SELECT *
+FROM   dba_temp_free_space
+/
+
+--
+-- Temporary Tablespace Sort Usage.
+--
+ 
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+ 
+SELECT 
+   A.tablespace_name tablespace, 
+   D.mb_total,
+   SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_used,
+   D.mb_total - SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_free
+FROM 
+   v$sort_segment A,
+(
+SELECT 
+   B.name, 
+   C.block_size, 
+   SUM (C.bytes) / 1024 / 1024 mb_total
+FROM 
+   v$tablespace B, 
+   v$tempfile C
+WHERE 
+   B.ts#= C.ts#
+GROUP BY 
+   B.name, 
+   C.block_size
+) D
+WHERE 
+   A.tablespace_name = D.name
+GROUP by 
+   A.tablespace_name, 
+   D.mb_total
+/
