@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source /home/oracle/.bash_profile
+
+$ORACLE_HOME/bin/sqlplus / AS SYSDBA <<EOF
+
+EXEC DBMS_STATS.GATHER_SYSTEM_STATS('START');
+EXECUTE DBMS_LOCK.SLEEP(3600);
+EXEC DBMS_STATS.GATHER_SYSTEM_STATS('STOP');
+
+EXIT;
+
+EOF
