@@ -1,0 +1,48 @@
+# +-------------------------------------------------------------------------+
+# | create_user_&SID.sql                                                     |
+
+
+DEFINE SID='&SID'
+DEFINE ORACLE_BASE='/u01/oracle'
+
+-- CRIANDO TABLESPACE PRODUCAO
+create tablespace USER_PRODUCAO datafile '&ORACLE_BASE/oradata/&SID/USER_PRODUCAO01.dbf' size 3G autoextend on next 500 M default storage (INITIAL 512K NEXT    512K MINEXTENTS 1 MAXEXTENTS 121 PCTINCREASE 0) online ;
+alter tablespace USER_PRODUCAO add datafile '&ORACLE_BASE/oradata/&SID/USER_PRODUCAO02.dbf' size 1G autoextend on next 500M;
+alter tablespace USER_PRODUCAO add datafile '&ORACLE_BASE/oradata/&SID/USER_PRODUCAO03.dbf' size 1G autoextend on next 500M;
+alter tablespace USER_PRODUCAO add datafile '&ORACLE_BASE/oradata/&SID/USER_PRODUCAO04.dbf' size 1G autoextend on next 500M;
+
+-- CRIANDO TABLESPACE INDECES
+create tablespace PROD01_INDX datafile '&ORACLE_BASE/oradata/&SID/PROD01_INDX01.dbf' size 2G autoextend on next 500 M default storage (INITIAL 512K NEXT    512K MINEXTENTS 1 MAXEXTENTS 121 PCTINCREASE 0) online ;
+alter tablespace PROD01_INDX add datafile '&ORACLE_BASE/oradata/&SID/PROD01_INDX02.dbf' size 1G autoextend on next 500M;
+alter tablespace PROD01_INDX add datafile '&ORACLE_BASE/oradata/&SID/PROD01_INDX03.dbf' size 1G autoextend on next 500M;
+alter tablespace PROD01_INDX add datafile '&ORACLE_BASE/oradata/&SID/PROD01_INDX04.dbf' size 1G autoextend on next 500M;
+
+
+-- Create the role
+create role USUARIO_ROLE;
+
+-- Grant/Revoke role privileges
+grant connect to USUARIO_ROLE;
+grant select on v_$database to USUARIO_ROLE;
+
+-- Create the user
+create user USUARIO identified by "new" default tablespace USER_PRODUCAO temporary tablespace TEMP profile DEFAULT;
+
+-- Grant/Revoke object privileges
+grant select on v_$database to USUARIO;
+grant insert, update, delete on v_$database to USUARIO with grant option;
+
+-- Grant/Revoke role privileges
+grant connect to USUARIO;
+grant dba to USUARIO;
+grant &SID_role to USUARIO;
+grant resource to USUARIO;
+
+-- Grant/Revoke system privileges
+grant unlimited tablespace to USUARIO;
+grant select on v_$database to USUARIO;
+grant execute on dbms_crypto to public;
+
+-- Alteração questões de senha
+ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED PASSWORD_LIFE_TIME UNLIMITED;
+ALTER SYSTEM SET SEC_CASE_SENSITIVE_LOGON = FALSE;
